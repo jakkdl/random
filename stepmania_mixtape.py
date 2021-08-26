@@ -18,6 +18,8 @@ def generate_mixtape(pattern, max_length):
     for i in set(pattern):
         result[i] = []
 
+    root = get_save_data()
+
     for pack in os.listdir(MUSICDIR):
         pack_stats[pack] = 0
         print(pack)
@@ -86,7 +88,10 @@ def generate_mixtape(pattern, max_length):
                         i += 1
                         meter = int(content[i].strip()[:-1])
                         
-                        if 'dance-single' in chart_type and meter in pattern:
+                        if ('dance-single' in chart_type
+                            and meter in pattern
+                           and grade(root, os.path.join(pack, songdir),
+                                     difficulty, 6) ):
                             result[meter].append((os.path.join(pack, songdir),
                                                   difficulty,
                                                   get_songlength(fulldir, files)
@@ -98,6 +103,9 @@ def generate_mixtape(pattern, max_length):
     pprint.pprint(pack_stats)
     mixtape_length = 0
     mixtape = []
+
+    for key,val in result.items():
+        print('difficulty {}, {} songs'.format(key, len(val)))
 
     while mixtape_length < max_length:
         for difficulty in pattern:
@@ -112,11 +120,54 @@ def generate_mixtape(pattern, max_length):
     pprint.pprint(mixtape)
 
     filename = 'mixtape_{}.crs'.format(time.time())
+    print('writing to {}'.format(filename))
 
     with open(os.path.join(COURSEDIR, filename), 'w') as f:
         f.write('#COURSE:generated mixtape\n')
         for track in mixtape:
             f.write('#SONG:{}:{};\n'.format(track[0], track[1]))
+
+
+def get_save_data(f = SAVEFILE):
+    import xml.etree.ElementTree as ET
+    tree = ET.parse(f)
+    root = tree.getroot()
+    return root
+
+#AA - tier03
+#A - tier04
+#B - tier05
+#C - tier06
+#D - tier07
+#F - Failed
+def grade(root, song, difficulty, max_grade):
+    for current_song in root[1]:
+        if song not in current_song.attrib['Dir']:
+            continue
+        for current_difficulty in current_song:
+            if ('dance-single' not in current_difficulty.attrib['StepsType']
+                or difficulty.lower() not in
+                current_difficulty.attrib['Difficulty'].lower()):
+                continue
+            if current_difficulty[0].tag != 'HighScoreList':
+                print('check xml of {}, has more than '
+                      'highscorelist'.format(current_song))
+                continue
+            grade = current_difficulty[0].find('HighGrade')
+            if grade is None:
+                return False
+            grade = grade.text.lower()
+            if grade == 'failed':
+                return False 
+            grade = int(grade.replace('tier', ''))
+            if grade > max_grade:
+                return False
+            return True
+        return False
+    return False
+
+
+
 
 
 
@@ -132,4 +183,4 @@ def get_songlength(fulldir, files):
 
 
 if __name__ == '__main__':
-    generate_mixtape(pattern=[6,6,7], max_length=30*60)
+    generate_mixtape(pattern=[6,7], max_length=30*60)
