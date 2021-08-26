@@ -1,4 +1,5 @@
 import time
+import typing
 
 BPM = 130
 
@@ -22,43 +23,44 @@ try:
     import winsound
 except ImportError:
     import numpy as np
-    import simpleaudio as sa
+    import simpleaudio as sa # type: ignore
+
+    # Cache generated sounds
     sounds = {}
-    def generate_sound(x,z):
-        frequency = x # Our played note will be 440 Hz
-        fs = 44100  # 44100 samples per second
-        seconds = z  # Note duration of z seconds
+    SAMPLE_RATE = 44100
 
+    def generate_sound(frequency: float, seconds: float) -> np.int16:
+        """ Inspired by https://stackoverflow.com/a/58251257 """
         # Generate array with seconds*sample_rate steps, ranging between 0 and seconds
-        t = np.linspace(0, seconds, int(seconds * fs), False)
+        array = np.linspace(0, seconds, int(seconds * SAMPLE_RATE), False)
 
-        # Generate a 440 Hz sine wave
-        note = np.sin(frequency * t * 2 * np.pi)
+        # Generate a sine wave at the specified frequency
+        note = np.sin(frequency * array * 2 * np.pi)
 
         # Ensure that highest value is in 16-bit range
         audio = note * (2**15 - 1) / np.max(np.abs(note))
+
         # Convert to 16-bit data
-        audio = audio.astype(np.int16)
-        sounds[(frequency, seconds)] = audio
+        return typing.cast(np.int16, audio.astype(np.int16))
 
-    def sound(frequency, milliseconds):
-        fs = 44100  # 44100 samples per second
+    def sound(frequency: int, milliseconds: int) -> None:
         seconds = milliseconds / 1000
+        key = (frequency, seconds)
 
-        if (frequency, seconds) not in sounds:
-            generate_sound(frequency, seconds)
+        if key not in sounds:
+            sounds[key] = generate_sound(*key)
 
         # Start playback
-        play_obj = sa.play_buffer(sounds[(frequency, seconds)], 1, 2, fs)
+        play_obj = sa.play_buffer(sounds[key], 1, 2, SAMPLE_RATE)
 
         # Wait for playback to finish before exiting
         play_obj.wait_done()
 else:
-    def sound(frequency, duration):
-        winsound.Beep(frequency, duration)
+    def sound(frequency: int, milliseconds: int) -> None:
+        winsound.Beep(frequency, milliseconds) # type: ignore
 
 
-def _main():
+def _main() -> None:
     delay = 60 / BPM
     start_delay = delay * SIGNIFICANT_BEAT
     time.sleep(start_delay - (time.time() + TIME_SHIFT) % start_delay)
