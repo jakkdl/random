@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 
 import time
 import random
@@ -10,11 +10,11 @@ from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 
 import requests
-import mpd # type: ignore
+import mpd # type: ignore # pip install python-mpd2
 
 
 URL = 'http://feeds.feedburner.com/FrostedBreaksLfk'
-MPDDIR = '/data/Media/music'
+MPDDIR = '/home/h/Media/music'
 FBLFKDIR = 'podcast/frosted_breaks'
 DIR = os.path.join(MPDDIR, FBLFKDIR)
 PICKLE_FILE = os.path.join(DIR, 'fblfk_episodes.pickle')
@@ -37,6 +37,7 @@ class PodcastDownloader:
         self.last_update = 0.0
         self.episodes : Episodes = {}
         self.rss = ''
+
 
 
         # if there's no pickled file, download rss and update episodes
@@ -140,11 +141,25 @@ def main() -> None:
     client.idletimeout = None
     client.connect("localhost", 6600)
 
+    tmp = DIR
+    subpaths = []
+    while tmp != '/':
+        subpaths.append(tmp)
+        tmp,_ = os.path.split(tmp)
+    for path in subpaths.__reversed__():
+        if not os.path.isdir(path):
+            os.mkdir(path)
+
     podcast_downloader = PodcastDownloader(
             url=URL,
             path=DIR,
             pickle_file=PICKLE_FILE,
             rss_file=RSS_FILE)
+
+    client.consume(1)
+    client.random(0)
+    client.repeat(0)
+    client.single(0)
 
     try:
         while True:
@@ -158,6 +173,7 @@ def main() -> None:
                     except mpd.ConnectionError:
                         client.connect("localhost", 6600)
                     client.update(FBLFKDIR)
+                    client.idle('database')
                     time.sleep(1)
                     client.add(os.path.join(FBLFKDIR, file))
                     podcast_downloader.increment(key)
