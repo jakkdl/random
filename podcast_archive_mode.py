@@ -158,7 +158,7 @@ def main() -> None:
                     except mpd.ConnectionError:
                         client.connect("localhost", 6600)
                     client.update(FBLFKDIR)
-                    client.idle('update')
+                    time.sleep(1)
                     client.add(os.path.join(FBLFKDIR, file))
                     podcast_downloader.increment(key)
 

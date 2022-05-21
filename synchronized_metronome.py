@@ -1,6 +1,7 @@
 import time
 import typing
 
+# The BPM of the metronome
 BPM = 130
 
 # Every x'th beat is highlighted
@@ -8,7 +9,7 @@ SIGNIFICANT_BEAT = 8
 
 ## POSITIVE means the beep comes later
 ## NEGATIVE means the beep comes earlier
-TIME_SHIFT = -0.15
+TIME_SHIFT = +0.20
 
 # Frequency of metronome beeps
 BASE_FREQUENCY = 440
@@ -19,6 +20,7 @@ SIGNIFICANT_FREQUENCY = 880
 # Beep length in milliseconds
 BEEP_LENGTH = 20
 
+# A complicated mess to make a beep sound I've hidden.
 try:
     import winsound
 except ImportError:
@@ -60,18 +62,27 @@ else:
         winsound.Beep(frequency, milliseconds) # type: ignore
 
 
-def _main() -> None:
+def main() -> None:
+    # Calculate time between each beat
     delay = 60 / BPM
+
+    # Calculate how long between synchronized starts
     start_delay = delay * SIGNIFICANT_BEAT
+
+    # Wait until the next synchronized start
     time.sleep(start_delay - (time.time() + TIME_SHIFT) % start_delay)
+
+
     while True:
         for i in range(SIGNIFICANT_BEAT):
+            # If it's a 1, beep at a different frequency
             if i == 0:
-                print(f'{time.time() % 1000:.4f}*')
                 sound(SIGNIFICANT_FREQUENCY, BEEP_LENGTH)
             else:
-                print(f'{time.time() % 1000:.4f}')
                 sound(BASE_FREQUENCY, BEEP_LENGTH)
+
+            # Wait until we need to beep next time
             time.sleep(delay - (time.time()+TIME_SHIFT) % delay)
 
-_main()
+# Start the program!
+main()
