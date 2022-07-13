@@ -38,7 +38,7 @@ def main():
                 minvals[i] = intval
 
     with open('output.csv', 'w', encoding='utf-8') as file:
-        file.write(','.join(labels)+'\n')
+        file.write(','.join(names)+'\n')
         for data in (offset,maxvals, minvals, *nums):
             file.write(','.join(map(str, data))+'\n')
 
